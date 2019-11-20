@@ -1,2 +1,13 @@
-# group_project
-Group Project for Stats506 F19
+# Group Project - Stats506 F19
+
+
+# Time Line
+|   |                     |                  | 11/20                 |               |   |   |
+|---|---------------------|------------------|-----------------------|---------------|---|---|
+|   |                     |                  |                       |               |   |   |
+|   |                     | 11/26            | 11/27                 |               |   |   |
+|   |                     | **Proposal Due** | *Thanksgiving*        |               |   |   |
+|   |                     |                  |                       | 12/5          |   |   |
+|   |                     |                  |                       | **Draft Due** |   |   |
+|   | 12/9                |                  | 12/11                 |               |   |   |
+|   | **Peer Review Due** |                  | **Final Project Due** |               |   |   |
