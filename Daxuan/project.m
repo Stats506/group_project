@@ -46,8 +46,9 @@ fit = predict(md, dt(:, 3:7));
 res = md.Residuals.Raw;
 
 % calculate observed coverage probability
-se = sqrt(sum(res .^2) / (height(dt) - width(dt) -1));
-ci = [fit - norminv(0.975) * se, fit + norminv(0.975) * se];
+df = height(dt) - width(dt) -1;
+se = sqrt(sum(res .^2) / df);
+ci = [fit - tinv(0.95, df) * se, fit + tinv(0.95, df) * se];
 cover = sum(dt.alcohol > ci(:,1) & dt.alcohol < ci(:,2)) / length(ci);
 
 % plot residuals
@@ -57,13 +58,13 @@ plot(1:length(ci), res, 'x'), title('residuals of OLS')
 rng(506);
 nboot = 1000;
 
-func_se = @(x)sqrt(sum(x .^2) / (height(dt) - width(dt) -1));
+func_se = @(x)sqrt(sum(x .^2) / df);
 se_boot = bootstrp(nboot, func_se, res);
 cover_boot = zeros(nboot, 1);
 
 for i=1:nboot
-    ci_boot = [fit - norminv(0.975) * se_boot(i), ...
-        fit + norminv(0.975) * se_boot(i)];
+    ci_boot = [fit - tinv(0.95, df) * se_boot(i), ...
+        fit + tinv(0.95, df) * se_boot(i)];
     cover_boot(i) = sum(dt.alcohol > ci_boot(:,1) & ...
         dt.alcohol < ci_boot(:,2)) / length(ci);
 end
@@ -74,8 +75,8 @@ se_list = ([quantile(se_boot, (0:10) / 10), mean(se_boot), se])' ;
 cover_list = zeros(13, 1);
 
 for i=1:13
-    ci_list = [fit - norminv(0.975) * se_list(i), ...
-        fit + norminv(0.975) * se_list(i)];
+    ci_list = [fit - tinv(0.95, df) * se_list(i), ...
+        fit + tinv(0.95, df) * se_list(i)];
     cover_list(i) = sum(dt.alcohol > ci_list(:,1) & ...
         dt.alcohol < ci_list(:,2)) / length(ci);
 end
@@ -116,8 +117,8 @@ for i=1:nrep
     cover_boot = zeros(nboot, 1);
 
     for j=1:nboot
-        ci_test = [fit - norminv(0.975) * se_boot(j), ...
-            fit + norminv(0.975) * se_boot(j)];
+        ci_test = [fit - tinv(0.95, df) * se_boot(j), ...
+            fit + tinv(0.95, df) * se_boot(j)];
         cover_boot(j) = sum(dt.alcohol > ci_test(:,1) & ...
             dt.alcohol < ci_test(:,2)) / length(ci);
     end
@@ -126,8 +127,8 @@ for i=1:nrep
     cover_list = zeros(13, 1);
 
     for j=1:13
-        ci_list = [fit - norminv(0.975) * se_list(j), ...
-        fit + norminv(0.975) * se_list(j)];
+        ci_list = [fit - tinv(0.95, df) * se_list(j), ...
+        fit + tinv(0.95, df) * se_list(j)];
         cover_list(j) = sum(dt.alcohol > ci_list(:,1) & ...
         dt.alcohol < ci_list(:,2)) / length(ci);
     end
