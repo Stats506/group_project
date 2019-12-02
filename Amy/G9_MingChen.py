@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[304]:
-
-
 # Stats 506, Fall 2019
 # Group Project - group 9
 #
