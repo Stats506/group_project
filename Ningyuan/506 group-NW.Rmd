@@ -1,0 +1,241 @@
+---
+title: "Group 9: Bootstrapping Regression"
+subtitle: '*Analysis of Drinking Alcohol Habits Effect on Health condition in a National Sample of US Adults*'
+author: "Daxuan Deng, Ming-Chen Lu, Ningyuan Wang"
+date: "December 5, 2019"
+output: 
+  html_document:
+  toc: true
+  number_sections: true
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# libraries
+library(data.table)
+library(dplyr)
+library(knitr)
+library(tidyverse)
+library(kableExtra)
+library(Hmisc) # for read xpt datasets 
+library(ggplot2)
+
+```
+
+## Introduction 
+
+Drinking alcohol is a common behavior among adults. People always think drinking alcohol is good for mood but bad for health. However, whether healthy people like drinking alcohol as well? Our group was curious about what factors affect the drinking habits for US healthy adults. 
+
+The analysis aims to evalute the effect of some factors, including health condition, sex, age, education level and poverty income ratio (PIR), on the frequency of drinking alcohol in the past year among a nationally representative sample of US adults by using bootstrapping regression. Our analysis was conducted with R, Python and Matlab. 
+
+
+## Data 
+
+### Data Source 
+The analysis sample consisits of all adults in the National Health and Nutrition Examination Survey (NHANES) from 2005 - 2006. The National Health and Nutrition Examination Survey (NHANES) is a program of studies designed to assess the health and nutritional status of adults and children in the United States. The sample for the survey is selected to represent the U.S. population of all ages. 
+
+For the purpose of the study, we limited the data to the samples age $\geqslant$ 21 years with self-reported good health.
+
+### Analysis Variables
+
+In this analysis, ALQ120Q (freuquency of drinking alcohol in the past 12 months) from *[Alcohol Use](https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/ALQ_D.htm)* was selected as our response variable, and the predictors were HSD010 (general health condition) from *[Current Health Status](https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/HSQ_D.htm#HSQ480)*; RIDAGEYR (age), RIAGENDR (gender), DMDEDUC2 (education), INDFMPIR (poverty income ratio) from *[Demographics Data](https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Demographics&CycleBeginYear=2005)*. The variable descriptions as follow.
+
+```{r, echo= FALSE}
+v = c("ALQ120Q", "HSD010", "RIDAGEYR", "RIAGENDR", "DMDEDUC2", "INDFMPIR")
+d = c("How often drink alcohol over past 12 months",
+      "General health condition", 
+      "Age at Screening Adjudicated - Recode", 
+      "Gender of the sample person: 1-Male, 2-Female",
+      "Person Highest Education Level",
+      "Family Poverty Income Ratio")
+data.table::data.table(Variable = v, Description  = d) %>%
+  knitr::kable(align = "l") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"), position = "left")
+
+```
+
+
+The primary outcome was understanding how the frequency of drinking alchol relates to the health conditions. In addition, we also explained the how the demographical factors such as age, gender, education and PIR relate to drinking habits. 
+
+
+## Methods (Daxuan)
+
+
+## Core Analysis {.tabset .tabset_fade}
+
+### R
+```{r, include=FALSE}
+library(reticulate)
+use_virtualenv(virtualenv = "r-reticulate")
+```
+
+
+#### a. Data Loading and Cleaning
+Our data was obtained from NHANES in .XPT file extention.  We used R package "Hmisc" and compiled data to regular dataframes.  Then, we merged three datasets into one based on sequence id and reduced the variables as well as limited samples to participants over 20 years in healthy condition. In addition, missing values were dropped in this part and continuous variables were standardized for the porpose of regression analysis. Finally, there were 2791 samples in our dataset. 
+
+```{r, message = FALSE, warning = FALSE, echo= FALSE}
+# read in the datasets and select the variables 
+alcohol = sasxport.get("https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/ALQ_D.XPT") %>% 
+  select(seqn, alq120q) %>%
+  filter(alq120q < 366) %>%
+  drop_na()
+
+health = sasxport.get("https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/HSQ_D.XPT") %>%
+  select(seqn, hsd010) %>%
+  filter(hsd010 <=3 ) %>%
+  drop_na() # limit to the healthy samples
+
+
+demography = sasxport.get("https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/DEMO_D.XPT") %>%
+  filter(ridageyr >=21,dmdeduc2 <= 5 ) %>%
+  transmute(seqn, age = ridageyr, gender = riagendr, education = dmdeduc2, pir = indfmpir ) %>%
+  drop_na() # limit to people > 20 years
+```
+
+```{r}
+# join above datasets
+df = left_join(alcohol, health, by = "seqn") %>% 
+  left_join(., demography, by = "seqn") %>%
+  drop_na() %>%
+  rename(drinks = alq120q, health = hsd010) # 2791*7
+
+# convert variables to factors and rescale continous variables
+df = df %>% 
+  mutate_at(vars(seqn, health, gender, education), as.factor) %>%
+  transmute(health, gender, education, drinks_std = scale(drinks),
+         age_std = scale(age),
+         pir_std = scale(pir)) 
+summary(df)
+
+
+```
+
+
+#### b. OLS Model and Diagnosis
+
+First, we fitted an OLS regression model with drinks as response and health condition, age, gender, education and PIR as predictors. The reference level of the model was the health condition good (the other two levels of health were "very good" and "excellent"). A summary of the model fit shows as follow. 
+```{r}
+# fit the model
+lm1 = lm(drinks_std ~ relevel(health, ref = 3)  + age_std + gender + 
+           education + pir_std, data = df) 
+
+summary(lm1) 
+```
+However, with the model diagnostics, we noticed that the residuals failed the OLS assumption with equal variance residuals. 
+```{r}
+# model diagnostics 
+res = lm1$residuals 
+fit = lm1$fitted
+par(mfrow=c(2,2))
+plot(fit, res, xlab = "fitted", ylab = "Residuals") # unequal varlaince in residuals
+qqnorm(res, ylab = "Residuals"); qqline(res) # non-normal residual
+
+```
+
+
+#### c. Bootstrapping Regression
+Since the data failed the model assumption and possible soutions such as lognormal or Box Cox transformation of the response wre not appropriate. We consider used bootstrapping regression as an alternative. The theory of bootstrapping regression residuals were claimed in the methods section.
+
+We sampled residuals 1000 times and then create a faked vector called "boot_y" as new response variable. and then refitted the model with fixed predictors as above and got distributions of beta estimates.  With new beta estimate and corresponding standard error, we did t test for each predictor and computed p values for terms in the model. Unfortunately, we did not see obvious imporvement based on p values to justify statistical significance between response and predicotrs variables. However, we concluded that we had robust standard error and relative p-values. 
+
+```{r}
+set.seed(506)
+
+# construct bootstrap samples : res and new response y* 
+n = nrow(df) # sample size
+B = 1e3  # number of bootstrap samples 
+
+boot_samples = sample(res, n * B, replace = TRUE)
+dim(boot_samples) = c(n, B) # each column is a dataset
+boot_y = matrix(fit, n, ncol(boot_samples)) + boot_samples # bootstrap y as faked response
+
+# refit the model with bootstrap samples on y* and get the estimate of coefficents
+lm_coef = function(y) lm(y ~ relevel(df$health, ref = 3)  + df$age_std + df$gender + df$education + df$pir_std)$coef
+boot_lms = apply(boot_y, 2, lm_coef)
+
+
+# apply(boot_lms, 1, hist) # check the distributions of beta hat
+# hist(boot_lms[2,], main = "point estimate of health in excellent",
+#      xlab = expression(hat(b)["excellent health"]))
+# hist(boot_lms[3,], main = "point estimate of health in very good",
+#      xlab = expression(hat(b)["very good health"]))
+
+# compute standard error for each term 
+se = sqrt(rowSums((boot_lms - rowMeans(boot_lms))^2) / B)
+t =  lm1$coefficients / se
+p = pt(abs(t), df = 1, lower.tail = F)
+tb = cbind(lm1$coef, se, t, p) 
+rownames(tb) =  c("Intercept", "Health: excellent", "Health: very good", "Age", "Gender", "Education: 2", "Education: 3", "Education: 4", "Education: 5", "PIR")
+
+tb %>% 
+  knitr::kable(align = "c", col.names = c("Estimate", "SE", "T", "P-value"), digits =  3) %>% column_spec(1,width = "0.8in") %>%
+      column_spec(2,width =  "0.8in") %>%
+      column_spec(3,width = "0.8in") %>%
+      column_spec(4,width = "0.8in")  
+
+
+
+```
+
+
+
+
+
+
+
+### Python
+
+```{python, eval = FALSE}
+
+import pandas as pd
+import numpy as np
+```
+
+### Matlab
+
+```{matlab, eval = FALSE, include = TRUE}
+% Title:  Matlab script for group project, STATS 506
+% Author: Daxuan Deng
+% Funtion: explore the relationship between health condition and drinking
+%          alcohol, using data NHANES 2005-2006 data.
+% Date: 11/30/2019
+```
+
+
+## Additional Analysis (Ming-Chen)
+
+
+## Results 
+```{r, include = FALSE}
+summary(df$age)
+summary(df$health)
+summary(df$education)
+
+
+
+
+```
+
+
+
+
+The project includes 2791 participants (51.92% males and 48.08% females) with a mean age of 47.19 years. In terms of health condition, 12.37% participants in self-reported excellent health, 38.34 % in very good helath and 49.29% in good health. Descriptive characteristics of the participants were shwon in table below. 
+ 
+ <need a descriptive summary table here>
+ 
+With the simple lineare regresion, ther were non-constant error variance and non=normality distirbution for residuals according to model diagnostics.
+
+With two approaches of bootstrapping regression (boottrapping regression residuals and our own creativity) to evaluate the effect of drinking alcohol on health condition on US healthy adults, we got similar results and both supported people whom in a better health condition would slightly drink more alcohol than people in fair good health condition. 
+
+## Discussion 
+
+
+## References
+*[Lecture 6: Bootstrap for Regression, Yen-Chi Chen](http://faculty.washington.edu/yenchic/17Sp_403/Lec6-bootstrap_reg.pdf)* \
+*[Bootstrap Resampling, Nathaniel Helwig](http://users.stat.umn.edu/~helwig/notes/boot-Notes.pdf)* 
+
+
+
+
