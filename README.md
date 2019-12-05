@@ -18,12 +18,12 @@ ALQ120Q (frequency of drinking alocol in the past 12 months) from *[Alcohol Use]
 
 
 ## Timeline and Group Logs
-- 11/20  meeting 1 collect ideas
+- 11/20  meeting 1: collect ideas
 - 11/21  online proposal draft review
 - 11/26  modify proposal based on the feedback
 - 11/27  final proposal submitted 
-- 12/03  meeting 2 individual work discussion and update ideas
-- 12/05  meeting 3 put files together and online code reivew, submit draft
+- 12/03  meeting 2: individual work discussion and update ideas
+- 12/05  meeting 3: put files together and online code reivew, submit draft
 
 - 12/09  peer reivew due
 - 12/11  final project due
