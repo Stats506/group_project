@@ -3,7 +3,8 @@
 
 Source of data: [NHANES 2005-2006](https://wwwn.cdc.gov/nchs/nhanes/ContinuousNhanes/Default.aspx?BeginYear=2005)
 
-**Response**: Frequency of drinking alocol in the past 12 months
+**Response**: 
+Frequency of drinking alocol in the past 12 months
 ALQ120Q from *[Alcohol Use](https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/ALQ_D.htm)*
 
 
@@ -24,7 +25,7 @@ RIDAGEYR (age), RIAGENDR (gender), DMDEDUC2 (education), INDFMPIR (poverty incom
 - RIAGENDR (gender)
 - DMDEDUC2 (education)
 - INDFMPIR (poverty income ratio)
-* all above four predictors from *[Demographics Data](https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Demographics&CycleBeginYear=2005)*
+*** all above four predictors from *[Demographics Data](https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Demographics&CycleBeginYear=2005)*
 
 
 -
