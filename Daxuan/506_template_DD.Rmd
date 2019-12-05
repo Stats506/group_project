@@ -1,0 +1,188 @@
+---
+title: "506 Group Project: Bootstrapping Regression"
+subtitle: '*Analysis of Factors Affecting the Drinking Alcohol Habits in a National Sample of US Adults*'
+author: " Group 9: Daxuan Deng, Ming-Chen Lu, Ningyuan Wang"
+date: "December 5, 2019"
+output: 
+  html_document:
+  toc: true
+  number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction (Ningyuan)
+
+
+
+```{r cars}
+
+```
+
+## Data (Ningyuan)
+
+
+
+```{r pressure, echo=FALSE}
+
+```
+
+
+
+## Method (Daxuan)
+
+Empirical bootstrap is a resampling method for assessing uncertainty of estimator. It is typically used when the exact or asymptotic analytic solutions are unavailable or unsatisfactory. 
+
+Generally, we draw samples with replacement from data set, and calculate the statistic we are interested in. Then, we repeat it $B$ times to generate the empirical distribution of estimator. With this distribution we could derive the variance of estimator.
+
+For example, suppose the regression model is:
+$$y \sim X\beta$$
+where $y\in R^n$ is the response, $X$ is the $n \times (p+1)$ design matrix, and $\beta \in R^{p+1}$ is the coefficient. In normal setting, we assume that error are Gaussian. Under this assumption, we calculate sample variance of coefficient estimator $Var(\hat{\beta})$ using residual sum of squares (RSS):
+$$\widehat{Var} (\hat{\beta}) = {\hat{\sigma}}^2(X'X)^{-1}$$
+$${\hat{\sigma}}^2 = \frac{RSS}{n-p-1}$$
+However, this could lead a bad result if data is skewed, because the outliers will force the ${\hat{\sigma}}$ become much bigger. To address this problem, we may use the residual bootstrap.
+
+After running regression, we obtain coefficient estimate $\hat{\beta}$ and residuals:
+$$r = y  - \hat{y} = y - X\hat{\beta}$$
+which is also a vector in $R^n$. Then we sample $r_i^*$ from $\{r_1, r_2,...r_n\}$ with replacement for $i \in \{1,2,...,n\}$, and define
+$$r^* = (r_1^*, r_2^*,...,r_n^*)'$$
+$$y^* = X\hat{\beta} + r^*$$
+In other word, we fix design matrix $X$, but generate a new response vector $y^*$ using the fitted value and the 'error' from resampling the residuals. Now we fit a new model:
+$$y^* \sim X\beta$$
+and we get a new coefficient estimate $\beta^*$. Repeating this process for $B$ times, we get $B$ bootstrap samples of $\hat{\beta}$:
+$$\beta^{*(1)},\beta^{*(1)},...\beta^{*(B)}$$
+Finally, we could calculate the sample variance of $\hat{\beta}$:
+$$\bar{\beta}^* = \frac{1}{B}\sum_{i=1}^B \beta^{*(i)}$$
+$$\widehat{Var}_B(\hat{\beta}) = \frac{1}{B}\sum_{i=1}^B (\beta^{*(i)}-\bar{\beta}^*)^2$$
+Basically, that's the core analysis method we use in this project. To do parallel computation, we use different softwares: MATLAB 2018b, Python 3.6.9 and R version 3.6.1 to calculate respectively. Besides, in all the analysis, a two-tailed $P$ value less than 0.05 $(P < 0.05)$ was considered statistically significant.
+
+## Core Analysis (Please follow the parallel orders) {.tabset .tabset_fade}
+
+### R
+
+```{r, eval=FALSE}
+#library(reticulate)
+#use_virtualenv(virtualenv = "r-reticulate")
+1+2
+```
+
+### Python
+
+```{python, eval = FALSE, python.reticulate = FALSE}
+
+#import pandas as pd
+#import numpy as np
+```
+
+### Matlab
+
+```{matlab, eval = FALSE, include = TRUE}
+% Title:  Matlab script for group project, STATS 506
+% Author: Daxuan Deng
+% Funtion: explore the relationship between health condition and drinking
+%          alcohol, using data NHANES 2005-2006 data.
+% Date: 11/30/2019
+
+% load data
+alq = xptread('ALQ_D.XPT');
+demo = xptread('DEMO_D.XPT');
+hsq = xptread('HSQ_D.XPT');
+
+% select variables
+alq = alq(:, {'SEQN', 'ALQ120Q'});
+demo = demo(:, {'SEQN', 'RIAGENDR', 'RIDAGEYR', 'DMDEDUC2', 'INDFMPIR'});
+hsq = hsq(:, {'SEQN', 'HSD010'});
+
+% merge data
+dt = join(alq, demo, 'Keys', 'SEQN');
+dt = join(dt, hsq, 'Keys', 'SEQN');
+
+% rename columns
+dt.Properties.VariableNames = ...
+["id", "alcohol", "sex", "yr", "edu", "pir", "health"];
+
+% drop invalid values
+dt = rmmissing(dt);
+dt(dt.alcohol > 365, :) = [];
+dt(dt.yr < 21, :) = [];
+dt(dt.edu > 5, :) = [];
+dt(dt.health > 3, :) = [];
+
+% centralize and factorize
+dt.alcohol = (dt.alcohol - mean(dt.alcohol)) ./ std(dt.alcohol);
+dt.sex = categorical(dt.sex);
+dt.yr = (dt.yr - mean(dt.yr)) ./ std(dt.yr);
+dt.edu = categorical(dt.edu);
+dt.pir = (dt.pir - mean(dt.pir)) ./ std(dt.pir);
+dt.health = categorical(dt.health);
+% set 'Good' as base level
+dt.health = reordercats(dt.health, {'3','1','2'});
+
+% run OLS
+md = fitlm(dt, 'alcohol ~ sex + yr + edu + pir + health');
+
+% summary
+md.Coefficients
+
+% extract fitted values and residuals 
+fit = predict(md, dt(:, 3:7));
+res = md.Residuals.Raw;
+coef = md.Coefficients(:,1);
+
+% plot residuals
+plot(1:height(dt), res, 'x'), title('residuals of OLS')
+
+% bootstrap
+rng(506);
+nboot = 1000;
+
+% resample residuals
+func = @(x)x;
+res_boot = bootstrp(nboot, func, res);
+
+dt_boot = dt(:, 3:7);
+beta_boot = zeros(nboot, 10);
+
+for i=1:nboot
+    % generate new response
+    dt_boot.alcohol = fit + res_boot(i,:)';
+    
+    % fit new model
+    md_boot = fitlm(dt_boot, 'alcohol ~ sex + yr + edu + pir + health');
+    
+    % extract new estimate
+    beta_boot(i,:) = table2array(md_boot.Coefficients(:,1))';
+end
+
+% hist health_1 and health_2
+hist(beta_boot(:,9)),title('coefficient of health 1')
+hist(beta_boot(:,10)),title('coefficient of health 2')
+
+% calculate std err
+se = std(beta_boot);
+
+% summary
+result = coef;
+result.se = se';
+result.t = result.Estimate ./ result.se;
+result.pvalue = 1-tcdf(abs(result.t),1);
+
+result
+```
+
+
+## Additional Analysis (Ming-Chen)
+
+
+## Results (Brief by Ningyuan )
+
+## Discussion (??? B-Spline)
+
+
+## References （Ningyuan)
+http://faculty.washington.edu/yenchic/17Sp_403/Lec6-bootstrap_reg.pdf
+http://users.stat.umn.edu/~helwig/notes/boot-Notes.pdf
+
+
