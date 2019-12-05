@@ -60,9 +60,6 @@ data.table::data.table(Variable = v, Description  = d) %>%
 The primary outcome was understanding how the frequency of drinking alchol relates to the health conditions. In addition, we also explained the how the demographical factors such as age, gender, education and PIR relate to drinking habits. 
 
 
-## Methods (Daxuan)
-
-
 ## Core Analysis {.tabset .tabset_fade}
 
 ### R
@@ -182,31 +179,6 @@ tb %>%
 
 
 
-
-
-
-### Python
-
-```{python, eval = FALSE}
-
-import pandas as pd
-import numpy as np
-```
-
-### Matlab
-
-```{matlab, eval = FALSE, include = TRUE}
-% Title:  Matlab script for group project, STATS 506
-% Author: Daxuan Deng
-% Funtion: explore the relationship between health condition and drinking
-%          alcohol, using data NHANES 2005-2006 data.
-% Date: 11/30/2019
-```
-
-
-## Additional Analysis (Ming-Chen)
-
-
 ## Results 
 ```{r, include = FALSE}
 summary(df$age)
@@ -228,8 +200,6 @@ The project includes 2791 participants (51.92% males and 48.08% females) with a 
 With the simple lineare regresion, ther were non-constant error variance and non=normality distirbution for residuals according to model diagnostics.
 
 With two approaches of bootstrapping regression (boottrapping regression residuals and our own creativity) to evaluate the effect of drinking alcohol on health condition on US healthy adults, we got similar results and both supported people whom in a better health condition would slightly drink more alcohol than people in fair good health condition. 
-
-## Discussion 
 
 
 ## References
