@@ -17,7 +17,7 @@ ALQ120Q (frequency of drinking alocol in the past 12 months) from *[Alcohol Use]
 
 
 
-## Time Line
+## Timeline and Logs
 |   |                     |                  | 11/20                 |               |   |   |
 |---|---------------------|------------------|-----------------------|---------------|---|---|
 |   |                     |                  |                       |               |   |   |
