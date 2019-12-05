@@ -42,6 +42,9 @@ dt.health = reordercats(dt.health, {'3','1','2'});
 % run OLS
 md = fitlm(dt, 'alcohol ~ sex + yr + edu + pir + health');
 
+% summary
+md.Coefficients
+
 % extract fitted values and residuals 
 fit = predict(md, dt(:, 3:7));
 res = md.Residuals.Raw;
@@ -71,6 +74,10 @@ for i=1:nboot
     % extract new estimate
     beta_boot(i,:) = table2array(md_boot.Coefficients(:,1))';
 end
+
+% hist health_1 and health_2
+hist(beta_boot(:,9)),title('coefficient of health 1')
+hist(beta_boot(:,10)),title('coefficient of health 2')
 
 % calculate std err
 se = std(beta_boot);
