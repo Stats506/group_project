@@ -17,13 +17,14 @@ ALQ120Q (frequency of drinking alocol in the past 12 months) from *[Alcohol Use]
 
 
 
-## Timeline and Logs
-|   |                     |                  | 11/20                 |               |   |   |
-|---|---------------------|------------------|-----------------------|---------------|---|---|
-|   |                     |                  |                       |               |   |   |
-|   |                     | 11/26            | 11/27                 |               |   |   |
-|   |                     | **Proposal Due** | *Thanksgiving*        |               |   |   |
-|   |                     |                  |                       | 12/5          |   |   |
+## Timeline and Group Logs
+|   |                     |                   | 11/20  meeting 1  | 11/21 online       |
+|   |                     |                   | collect ideas     | review proposal | 
+|---|---------------------|------------------ |-------------------|---------------——|---|---|
+|   |                     | 11/26 online      | 11/27  final      |                 |   |   |
+|   |                     | modify proposal   |  proposal due            |   |   |
+-----------------------------------------------------------------------------------------------
+|   |                     |                  |                       | 12/5            |   |   |
 |   |                     |                  |                       | **Draft Due** |   |   |
 |   | 12/9                |                  | 12/11                 |               |   |   |
 |   | **Peer Review Due** |                  | **Final Project Due** |               |   |   |
