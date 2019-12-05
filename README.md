@@ -4,8 +4,7 @@
 Source of data: [NHANES 2005-2006](https://wwwn.cdc.gov/nchs/nhanes/ContinuousNhanes/Default.aspx?BeginYear=2005)
 
 **Response**: 
-Frequency of drinking alocol in the past 12 months
-ALQ120Q from *[Alcohol Use](https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/ALQ_D.htm)*
+ALQ120Q (frequency of drinking alocol in the past 12 months) from *[Alcohol Use](https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/ALQ_D.htm)*
 
 **Predictors**: 
 - HSD010 (general health condition) from *[Current Health Status](https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/HSQ_D.htm#HSQ480)*
