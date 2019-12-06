@@ -183,8 +183,3 @@ aa_data = {'Estimate': np.array(lmod.params[:]), 'SE': n_se,
 rows = lmod.params.index.values
 aa_tbl = pd.DataFrame(data=aa_data, index=rows)
 print(aa_tbl)
-
-
-# 如何解釋選最小的SE？
-# 1. 選mean or median和原本的沒有差多少，使用最小的SE就是盡量不選到outlier -> 可以畫個distribution plot或是做個summary table
-# 2. 若從coverage probability來看，原本的覆蓋率有到99%，超過95%十分地高，若選擇最小的se，coverage probability仍然有97%，代表沒犧牲到多少，但se還變小了
