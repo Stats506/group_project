@@ -4,7 +4,7 @@
 # ### Core Analysis
 # *Ming-Chen Lu*
 
-# In[1]:
+# In[49]:
 
 
 # Stats 506, Fall 2019
@@ -27,7 +27,6 @@ import xport
 import pandas as pd
 import numpy as np
 import seaborn as sns
-import math
 import random
 import matplotlib.pyplot as plt
 from scipy.stats import t
@@ -95,11 +94,11 @@ def boot_res(df, fitted, res):
     #   res  - a array of residuals from the initial model
     # output: 
     #   n_lmod.params - the coefficients of new model
-    #   n_se - standard error for the additional analysis
+    #   n_ss - sigma square for the additional analysis
     
     # sampling residauls with replacement
     b_res = np.random.choice(res, size = len(res), replace = True)
-    n_se = math.sqrt( sum(b_res**2) / (df.shape[0] - df.shape[1] - 1) )
+    n_ss = sum(b_res**2) / (df.shape[0] - df.shape[1] - 1)
     
     # adding the resampled residuals back to the fitted values
     new_y = fitted + b_res
@@ -111,7 +110,7 @@ def boot_res(df, fitted, res):
     
     # fit new model
     n_lmod = ols('alcohol ~ C(health) + C(sex) + age + pir + C(edu)', data = n_df).fit()
-    return(n_lmod.params, n_se)
+    return(n_lmod.params, n_ss)
 
 # Test the function
 #boot_res(df, fitted, res)
@@ -149,3 +148,43 @@ data = np.transpose(data)
 tbl = pd.DataFrame(data=data, columns=col, index=rows)
 print(tbl)
 
+
+# ## Additional Analysis
+
+# In[57]:
+
+
+from patsy import dmatrix
+
+# Extract se from 1000 times bootstrapping
+n_ss = [lis[1] for lis in b]
+
+# Take the minimum SE after 1000 times bootstrapping
+n_ss = [lis[1] for lis in b]
+n_ss = min(n_ss)
+
+# Extract the design matrix of predictors
+design_matrix = dmatrix('C(health) + C(sex) + age + pir + C(edu)', df)
+
+# Compute the standard errors of coefficients using bootstrapping residuals
+XX = np.linalg.inv(np.dot(np.transpose(predictors), predictors))
+n_se = np.sqrt(np.diag(n_ss*XX))
+
+# Compute t-statistic
+aa_tval = np.array(lmod.params[:]) / n_se
+aa_tval
+
+# Compute p-value
+aa_pval = t.sf(np.abs(aa_tval), 1)
+
+# Combine result into a dataframe
+aa_data = {'Estimate': np.array(lmod.params[:]), 'SE': n_se, 
+           'tStats': aa_tval, 'pValue': aa_pval}
+rows = lmod.params.index.values
+aa_tbl = pd.DataFrame(data=aa_data, index=rows)
+print(aa_tbl)
+
+
+# 如何解釋選最小的SE？
+# 1. 選mean or median和原本的沒有差多少，使用最小的SE就是盡量不選到outlier -> 可以畫個distribution plot或是做個summary table
+# 2. 若從coverage probability來看，原本的覆蓋率有到99%，超過95%十分地高，若選擇最小的se，coverage probability仍然有97%，代表沒犧牲到多少，但se還變小了
