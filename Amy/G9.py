@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# ## Stats 506, F19, Group Project - Group 9
-# *Author: Ming-Chen Lu (mingchlu)*  
-# *Date: December 3, 2019*
+# ### Core Analysis
+# *Ming-Chen Lu*
 
-# In[3]:
+# In[1]:
 
 
 # Stats 506, Fall 2019
@@ -19,18 +18,22 @@
 # NHANES 2005-2006 Demographics Data
 # Source: https://wwwn.cdc.gov/nchs/nhanes/Search/DataPage.aspx?Component=Demographics&CycleBeginYear=2005
 #
+# Author: Ming-Chen Lu
 # Updated: November 29, 2019
 #80: ---------------------------------------------------------------------------
 
-# set up: ----------------------------------------------------------------------
+# Set up: ----------------------------------------------------------------------
 import xport
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LinearRegression
+import seaborn as sns
+import math
+import random
 import matplotlib.pyplot as plt
 from scipy.stats import t
+from statsmodels.formula.api import ols
 
-# read in the data: ------------------------------------------------------------
+# Read in the data: ------------------------------------------------------------
 ## 'rb' mode - opens the file in binary format for reading
 with open('HSQ_D.XPT', 'rb') as f:
     df_health = xport.to_dataframe(f)
@@ -61,170 +64,88 @@ df = df.rename(columns = {"SEQN": "id", "ALQ120Q": "alcohol", "HSD010": "health"
                           "RIAGENDR": "sex", "RIDAGEYR": "age", "INDFMPIR": "pir",
                           "DMDEDUC2": "edu"})
 
-# normalize and factorize
+# Normalize alcohol, age, and poverty income ratio(pir)
 df.alcohol = (df.alcohol - np.mean(df.alcohol)) / np.std(df.alcohol)
 df.age = (df.age - np.mean(df.age)) / np.std(df.age)
 df.pir = (df.pir - np.mean(df.pir)) / np.std(df.pir)
-df.edu = pd.factorize(df.edu)[0]
-df.health = df.health.astype('category')
-df['health'].cat.categories = ['3', '2', '1']
+# Factorize health and education
+df.sex = df.sex.astype('category')
+df.edu = df.edu.astype('category')
+df.health = pd.factorize(df.health)[0]
 
 # Initial linear regression model: ---------------------------------------------
-X = np.array(df.iloc[:,2:])
-y = np.array(df.loc[:,'alcohol'])
-lmod = LinearRegression().fit(X, y)
-
-# print regression coefficients
-print('Coefficients: \n', lmod.coef_)
-
-# print R^2 
-print('R-squared: {}'.format(lmod.score(X, y)))
-
-# compute coverage probability
-fitted = lmod.predict(X)
-res = y - lmod.predict(X)
-tdist_df = df.shape[0] - df.shape[1] -1
-se = sum(res**2) / tdist_df
-alpha = 0.05
-ci = fitted - t.ppf(1 - alpha/2, tdist_df)*se, fitted + t.ppf(1 - alpha/2, tdist_df)*se
-coverg_prob = sum((y > ci[0]) & (y < ci[1])) / df.shape[0]
-print('Coverage Probability: ', coverg_prob)
+lmod = ols('alcohol ~ C(health) + C(sex) + age + pir + C(edu)', data = df).fit()
+print('')
+lmod.summary()
 
 # plot residual errors
+fitted = lmod.fittedvalues
+res = lmod.resid
 plt.style.use('ggplot')
 plt.scatter(fitted, res, color = "green", s = 10)
 plt.hlines(y = 0, xmin = -0.16, xmax = 0.15, linewidth = 1, color = "red")
 plt.title("Residuals vs Fitted")
 plt.show()
 
-
-# The residual versus fitted plot shows that the errors exhibit non-normality. In order to make the standard errors more robust, we resample the residuals.
-
-# In[51]:
-
-
-# resample residuals with replacement and fit new model
-def boot_res(X, fitted_values, res, tdist_df):
+# Function to resample residuals with replacement and fit new model: -----------
+def boot_res(df, fitted, res):
     # input: 
-    #   X - a numpy array of predictors values from the original linear model
-    #   fitted_values - a numpy array of fitted values from the original linear model
-    #   res  - a numpy array of residuals from the original linear model
-    #   tdist_df - degree of freedom for computing t distribution
+    #   df - the original data for fitting initial model
+    #   fitted - a array of fitted values from the initial model
+    #   res  - a array of residuals from the initial model
     # output: 
-    #   the coefficients of new model and its standard errors
+    #   n_lmod.params - the coefficients of new model
+    #   n_se - standard error for the additional analysis
     
+    # sampling residauls with replacement
     b_res = np.random.choice(res, size = len(res), replace = True)
-    new_y = fitted_values + b_res
-    n_lmod = LinearRegression().fit(X, new_y)
-    b_se = sum((new_y - n_lmod.predict(X))**2) / tdist_df
-    return(n_lmod.coef_, b_se)
+    n_se = math.sqrt( sum(b_res**2) / (df.shape[0] - df.shape[1] - 1) )
+    
+    # adding the resampled residuals back to the fitted values
+    new_y = fitted + b_res
+    
+    # combine old predictors values with new responses
+    X = df.iloc[:,2:]
+    n_df = pd.concat([new_y, X], axis = 1)
+    n_df.rename({0:'alcohol'}, axis = 1, inplace = True) 
+    
+    # fit new model
+    n_lmod = ols('alcohol ~ C(health) + C(sex) + age + pir + C(edu)', data = n_df).fit()
+    return(n_lmod.params, n_se)
 
 # Test the function
-#boot_res(X, fitted, res, tdist_df)
+#boot_res(df, fitted, res)
 
-# Bootstrapping residuals 1000 times: -----------------------------------------
-B = 10
-b = [boot_res(X, fitted, res, tdist_df) for i in range(B)]
+# Bootstrapping residuals 1000 times: ------------------------------------------
+random.seed(506)
+B = 1000
+b = [boot_res(df, fitted, res) for i in range(B)]
 b_coef = [lis[0] for lis in b]
 
-# Convert list of arrays to dataframe
-## Note that the intercept is a separated attribute of the model (model.intercept_).
-df = pd.DataFrame(np.row_stack(b_coef), columns = ['health', 'sex', 'age', 'pir', 'edu'])
+# convert list to dataframe
+b_df = pd.DataFrame(np.row_stack(np.array(b_coef)), 
+                    columns = ['Intercept', 'health.1', 'health.2', 'sex.2', 'edu.2',
+                               'edu.3', 'edu.4', 'edu.5', 'age', 'pir'])
 
-# Compute quantile for each coefficient
-qt = df.quantile([0.025, 0.975])
+# Compute SE for 1000 times bootstrap
+b_se = b_df.std(axis = 0)
+#print("Standard Error for each coefficient:", b_se)
 
-#? using the original coeff as point estimate?
-# Confidence interval for each coefficient
-lwr = qt.iloc[0,]
-upr = qt.iloc[1,]
+# Plot the distribution of bootstrapping coefficients for "health" variable
+#bh1 = sns.distplot(b_df.iloc[:,1])
+#bh1.set_title('Coefficients Distribution of Health "very good"')
 
+# Compute t-statistic
+tval = np.array(lmod.params)[:] / np.array(b_se)
 
-# In[79]:
+# Compute p-value
+pval = t.sf(np.abs(tval), 1)
 
-
-qt = df.quantile([0.025, 0.975])
-print(qt)
-print(lmod.coef_)
-print(lwr)
-lwr = qt.iloc[0,]
-upr = qt.iloc[1,]
-plt.errorbar(
-    qt.columns,
-    lmod.coef_,
-    yerr=[lwr, upr],
-    fmt='o',
-    linestyle = ''
-)
-plt.show()
-
-
-# In[59]:
-
-
-lmod.coef_
-
-
-# In[ ]:
-
-
-def boot_ci(B, alpha):
-    
-    b = [boot_res(X, fitted, res, tdist_df) for i in range(B)]
-    b_coef = [lis[1] for lis in b]
-
-
-# In[ ]:
-
-
-# Function for bootstrapping residuals: ---------------------------------------
-# resample residuals with replacement
-def boot_coverg_prob(fitted_values, res, tdist_df, alpha = 0.05):
-    # input: 
-    #   fitted_values - a numpy array of fitted values from the original linear model
-    #   res  - a numpy array of residuals from the original linear model
-    #   tdist_df - degree of freedom for computing t distribution
-    #   alpha - a value between [0,1] representing alpha level of confidence interval
-    # output: 
-    #   the coverage probability after resampling residuals
-    
-    b_res = np.random.choice(res, size = len(res), replace = True)
-    b_se = sum(b_res**2) / tdist_df
-    ci = (fitted_values - t.ppf(1 - alpha/2, tdist_df)*b_se, 
-          fitted_values + t.ppf(1 - alpha/2, tdist_df)*b_se)
-    coverg_prob = sum((y > ci[0]) & (y < ci[1])) / df.shape[0]
-    return(b_se, coverg_prob)
-
-# Test function
-#boot_coverg_prob(fitted, res, tdist_df)
-
-# Bootstrapping residuals 1000 times: -----------------------------------------
-B = 1000
-b = [boot_coverg_prob(fitted, res, tdist_df) for i in range(B)]
-b_prob = [lis[1] for lis in b]
-
-print('Coverage Probability')
-print(' Minimum: ', round(min(b_prob), 4))
-print(' Mean: ', round(np.mean(b_prob), 4))
-print(' Median: ', round(np.median(b_prob), 4))
-print(' Maximum: ', round(max(b_prob), 4))
-
-# plot the distribution of standard errors
-b_se = [lis[0] for lis in b]
-plt.style.use('ggplot')
-plt.hist(b_se, bins = 20, color = 'blue')
-plt.title('Histogram of Standard Errors')
-plt.show()
-
-# plot the distribution of coverage probability
-plt.style.use('ggplot')
-plt.hist(b_prob, bins = 20)
-plt.title('Histogram of Coverage Probability')
-plt.show()
-
-
-# In[ ]:
-
-
-
+# Combine result into a dataframe
+col = ["Estimate", "SE", "tStats", "pValue"]
+rows = lmod.params.index.values
+data = np.array([lmod.params, b_se, tval, pval])
+data = np.transpose(data)
+tbl = pd.DataFrame(data=data, columns=col, index=rows)
+print(tbl)
 
