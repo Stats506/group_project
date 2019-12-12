@@ -1,5 +1,5 @@
 # Group Project - Stats506 F19
-### Main Focus: Effects of Drinking Alcohol Habits on Health Condition Among US Adults?
+### Main Focus: Drinking Alcohol Behavior Among US "Healty" Audlts- how the drinking habits relate to health condition?
 
 Source of data: [NHANES 2005-2006](https://wwwn.cdc.gov/nchs/nhanes/ContinuousNhanes/Default.aspx?BeginYear=2005)
 
