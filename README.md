@@ -26,10 +26,16 @@ ALQ120Q (frequency of drinking alocol in the past 12 months) from *[Alcohol Use]
 - 12/05  meeting 3: put files together and online code reivew, submit draft
 
 - 12/09  peer reivew due
-- 12/11  final project due
+- 12/11  final revision
 
 Code peer reivews were in issue section. 
 
+## Contributions
+Most of the work were done cooperatively.
+For core analysis:
+• Daxuan Deng - Matlab
+• Ming-Chen Lu - Python
+• Ningyuan Wang - R
 
 
 
